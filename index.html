@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  
+  <head>
+    <title>Exercise Tracker | Free Code Camp</title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
+    <link rel="shortcut icon" href="https://cdn.hyperdev.com/us-east-1%3A52a203ff-088b-420f-81be-45bf559d01b1%2Ffavicon.ico" type="image/x-icon"/>
+    <link href="https://fonts.googleapis.com/css?family=Raleway|Roboto" rel="stylesheet" type="text/css">
+    <link href="style.css" rel="stylesheet" type="text/css">
+  </head>
+  
+  <body>
+    <div id="title">
+      <h6>APIs and Microservices Projects:</h6>
+      <h1>04. Exercise Tracker Microservice</h1>
+    </div>
+    <div class="container">
+      <div id="content">        
+        <div class="section stories">
+          <h2>User Stories: </h2>
+          <ol class="user-stories">
+            <li>I can create a user by posting form data username to <code>[project_url]/api/exercise/new-user</code> and returned will be an object with <code>username</code> and <code>_id</code>.</li>
+            <li>I can get an array of all users by getting <code>[project_url]/api/exercise/users</code> with the same info as when creating a user.</li>
+            <li>I can add an exercise to any user by posting form data <strong>userId(_id)</strong>, <strong>description</strong>, <strong>duration</strong>, and optionally <strong>date</strong> to <code>[project_url]/api/exercise/add</code>. 
+              If no date supplied it will use current date. Returned will the the user object with also with the exercise fields added.</li>
+            <li>I can retrieve a full exercise log of any user by getting <code>[project_url]/api/exercise/log</code> 
+              with a parameter of <strong>userId(_id)</strong>. Returned will be the user object with added array log and count (total exercise count).</li>
+            <li>I can retrieve part of the log of any user by also passing along optional parameters of <strong>from & to</strong> or <strong>limit</strong>. (Date format yyyy-mm-dd, limit = int).</li>            
+          </ol>
+        </div>
+        <div class="section">
+          <form action="/api/exercise/new-user" method="post">
+            <h2>Create a New User</h2>
+            <p><code>POST /api/exercise/new-user</code></p>
+            <input id="uname" type="text" name="username" placeholder="username" required>
+            <input type="submit" value="SUBMIT">
+          </form>
+        </div>
+        <div class="section">
+          <form action="/api/exercise/add" method="post">
+            <h2>Add exercises</h2>
+            <p><code>POST /api/exercise/add</code></p>
+            <input id="uid" type="text" name="userId" placeholder="userId*">
+            <input id="desc" type="text" name="description" placeholder="description*">
+            <input id="dur" type="text" name="duration" placeholder="duration* (mins.)">
+            <input id="dat" type="text" name="date" placeholder="date (yyyy-mm-dd)">
+            <input type="submit" value="SUBMIT">
+          </form>
+        </div>
+        <div class="section bottom">
+          <p><strong>GET users's exercise log: </strong><code>GET /api/exercise/log?{userId}[&amp;from][&amp;to][&amp;limit]</code></p>
+          <p>&#xa0; <strong>{ }</strong> = required, <strong>[ ]</strong> = optional;&#xa0; | &#xa0;</p>
+          <p><strong>from, to</strong> = dates (yyyy-mm-dd);&#xa0; | &#xa0;<strong>limit</strong> = number</p>
+        </div>
+      </div>
+    </div>
+    <div id="footer">
+      <h5>Designed and coded by <a href="https://github.com/Madness2aMaze" target="_blank" id="footbar" title="©2019 Cătălin Anghel-Ursu @Madness2aMaze - All Rights Reserved">@Madness2aMaze ©2019 - All Rights Reserved</a> | <a href="https://codepen.io/Madness2aMaze/"
+          title="More of my works" target="_blank"><i class="fab fa-codepen"></i></a> | <a href="https://www.freecodecamp.com/" target="_blank" title="FreeCodeCamp"><i class="fab fa-free-code-camp"></i></a>
+      </h5>
+    </div>
+  </body>
+
+</html>
