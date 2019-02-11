@@ -89,7 +89,7 @@ body {
 }
 
 .container {
-  max-width: 1138.83px;
+  max-width: 1098.83px;
   margin: 0 auto;
 }
 
@@ -130,7 +130,7 @@ body {
 .user-stories {
   font-size: 14px;
   text-align: left;
-  max-width: 410px;
+  max-width: 370px;
   margin: 10px 10px 10px 10px;
   padding-left: 10px;
 }
@@ -141,12 +141,19 @@ body {
 
 .stories h2 {
   margin-top: 15px;
+  margin-bottom: 10px;
+}
+
+ol li {
+  margin-top: 10px;
 }
 
 .bottom {
+  font-size: 13px;
+  display: block;
   margin: 10px auto;
-  text-align: justify;
-  max-width: 1095px;
+  text-align: center;
+  width: 1055px;
 }
 
 form {
@@ -157,6 +164,12 @@ form {
   padding: 10px 20px 20px 20px;
   max-width: 600px;
   transition: .2s;
+}
+
+form p {
+  font-size: 10px;
+  color: #999;
+  text-align: justify;
 }
 
 form:hover {
@@ -253,7 +266,7 @@ button a:hover {
 }
 
 #footer {
-  max-width: 1138.83px;
+  max-width: 1098.83px;
   margin: 0 auto;
   margin-top: 20px;  
   border-top: 2px #a076c5 solid;
@@ -294,4 +307,3 @@ button a:hover {
       font-size: 2em;
     }
   }
-  
