@@ -22,31 +22,53 @@ app.get('/', (req, res) => {
 //===============================================
 
 let savedUsers = []; //aray holding the documents ready to be posted to the DB
+
 const userSchema = new mongoose.Schema({
   username: String,
   _id: String,
-  description: String,
-  duration: Number,
-  date: String
+  exercise: [{
+    description: String,
+    duration: Number,
+    date: String
+  }]  
 });
 
 const User = mongoose.model('User', userSchema);
-/*
+
 //Get input from client - using the Route parameters
-app.get('/api/exercise/:new-user?', (req, res) => {
-  const newUser = req.params.username;
-    //find the document that has the "short_url" property associated with the entered numeric parameter and then redirect the page to the "original_url"
-    User.find({ _id: newUser}, (err, doc) => {
-      err ? console.log(err) : res.redirect(doc[0].original_url);
+//Getting an array with all the users, having only the _id and username properties
+app.get('/api/exercise/:users?', (req, res) => {
+    //get an array with all the users in the DB"
+    User
+      .find({username: /^.{2,15}$/i})
+      .select('-exercise -__v')
+      .exec((err, doc) => {
+      err ? console.log(err) : res.json(doc);
+      console.log(doc);
     });
-  });*/
+  });
+
+
+//get the user's document with a log for total exercises added and total exercise count
+app.get('/api/exercise/log/:_id?', (req, res) => {
+  const userId = req.params._id;    
+    User
+      .findById(userId)
+      .select('-__v')
+      .exec((err, doc) => {
+      err ? console.log(err) : res.json({User_document: doc, Total_exercise_count: doc.exercise.length});      
+      console.log(doc);
+    });
+  });
 
 
 
 app.post('/api/exercise/new-user', (req, res) => {
-  const newUser = req.body.username;
+  const newUser = req.body.username;  
+  const validUser = (/^.{2,15}$/i).test(newUser);  
   console.log(newUser);
-  if(newUser) {
+  
+  if(validUser) {
     User.find({ username: newUser }, '-__v', (err, doc) => {
       if (err) {
         console.log(err);
@@ -54,7 +76,7 @@ app.post('/api/exercise/new-user', (req, res) => {
         if (doc[0] !== undefined) { //a document matching the username property has been found
           res.json("username already taken"); //view the original entry
         } else { //no match so proceed to add new docs
-          savedUsers.push({username: newUser, _id: shortid.generate(), description: '', duration: 0, date: ''}); //populating the savedUsers array with objects for the newly added users
+          savedUsers.push({username: newUser, _id: shortid.generate(), exercise: []}); //populating the savedUsers array with objects for the newly added users
           res.json({username: savedUsers[0].username, _id: savedUsers[0]._id});
           console.log();
           //savind all objects fron the savedUsers array as documents in the DB
@@ -66,32 +88,37 @@ app.post('/api/exercise/new-user', (req, res) => {
         }
       }
     });
-  } else res.json("username required");
+  } else res.json("invalid username");
 });
 
 app.post('/api/exercise/add', (req, res) => {
   const userId = req.body.userId;
   const details = req.body.description;
   const length = req.body.duration;
-  const date = req.body.date;
+  let date = req.body.date;
+  
+  date ? date = new Date(date).toDateString() : date = new Date().toDateString();
   
   console.log(userId + ' ' + details + ' ' + length + ' ' + date);
   if (userId) {
-    User.findByIdAndUpdate(userId, { description: details, duration: length, date: ( date ? new Date(date).toDateString() : new Date().toDateString())}, (err, doc) => {
+    User.findByIdAndUpdate(userId, {$push: {exercise: [{description: details, duration: length, date: date }] } }, (err, doc) => {
       if (err) {
-        console.log(err);
+        //console.log(err);
+        res.json("_id not found");
       } else {
         User.find({ username: doc.username }, '-__v', (err, updatedDoc) => {
+          let last = updatedDoc[0].exercise.length - 1;
           if (err) {
             console.log(err);
           } else {
             console.log(updatedDoc[0]);
-            res.json(updatedDoc[0]); //view the entry with the updates applied
+            //view the last entry 
+            res.json({_id: updatedDoc[0]._id, username: updatedDoc[0].username, description: updatedDoc[0].exercise[last].description, duration: updatedDoc[0].exercise[last].duration, date: updatedDoc[0].exercise[last].date});           
           }
         });
       }
     });
-  } else res.json("unknown _id");
+  } else res.json("invalid _id");
 });
 
 
