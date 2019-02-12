@@ -22,11 +22,13 @@ app.get('/', (req, res) => {
 //===============================================
 
 let savedUsers = []; //aray holding the documents ready to be posted to the DB
+let err;
 
 const userSchema = new mongoose.Schema({
   username: String,
   _id: String,
   exercise: [{
+    _id: String,
     description: String,
     duration: Number,
     date: String
@@ -35,37 +37,12 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-//Get input from client - using the Route parameters
-//Getting an array with all the users, having only the _id and username properties
-app.get('/api/exercise/:users?', (req, res) => {
-    //get an array with all the users in the DB"
-    User
-      .find({username: /^.{2,15}$/i})
-      .select('-exercise -__v')
-      .exec((err, doc) => {
-      err ? console.log(err) : res.json(doc);
-      console.log(doc);
-    });
-  });
-
-
-//get the user's document with a log for total exercises added and total exercise count
-app.get('/api/exercise/log/:_id?', (req, res) => {
-  const userId = req.params._id;    
-    User
-      .findById(userId)
-      .select('-__v')
-      .exec((err, doc) => {
-      err ? console.log(err) : res.json({User_document: doc, Total_exercise_count: doc.exercise.length});      
-      console.log(doc);
-    });
-  });
-
-
-
-app.post('/api/exercise/new-user', (req, res) => {
+//==============================User Story #1==============================
+//adding a new user in the DB
+app.post('/api/exercise/new-user', (req, res, next) => {
   const newUser = req.body.username;  
-  const validUser = (/^.{2,15}$/i).test(newUser);  
+  const validUser = (/^.{2,15}$/i).test(newUser);//testing to see if the entered username matches the defined regExp
+  
   console.log(newUser);
   
   if(validUser) {
@@ -74,10 +51,12 @@ app.post('/api/exercise/new-user', (req, res) => {
         console.log(err);
       } else {
         if (doc[0] !== undefined) { //a document matching the username property has been found
-          res.json("username already taken"); //view the original entry
+          err = new Error("Conflict: username already taken"); //error message
+          err.status = 409;
+          return next(err);
         } else { //no match so proceed to add new docs
-          savedUsers.push({username: newUser, _id: shortid.generate(), exercise: []}); //populating the savedUsers array with objects for the newly added users
-          res.json({username: savedUsers[0].username, _id: savedUsers[0]._id});
+          savedUsers.push({ username: newUser, _id: shortid.generate(), exercise: [] }); //populating the savedUsers array with objects for the newly added users
+          res.json({ username: savedUsers[0].username, _id: savedUsers[0]._id });
           console.log();
           //savind all objects fron the savedUsers array as documents in the DB
           User.create(savedUsers,  (err, users) => {
@@ -88,38 +67,144 @@ app.post('/api/exercise/new-user', (req, res) => {
         }
       }
     });
-  } else res.json("invalid username");
+  } else {
+    err = new Error("Error: invalid username"); //error message
+    err.status = 401;
+    return next(err);
+  }
 });
 
-app.post('/api/exercise/add', (req, res) => {
+//==============================User Story #2==============================
+//getting an array with all the users, showing only the _id and username properties
+app.get('/api/exercise/users', (req, res) => {
+  //get an array with all the users in the DB"
+  User
+    .find({})
+    .select('-exercise -__v')
+    .exec((err, doc) => {
+    err ? console.log(err) : res.json(doc);
+    console.log(doc);
+  });
+});
+
+//==============================User Story #3==============================
+//finding the user by his _id and then adding an exercise entry in his schedule
+app.post('/api/exercise/add', (req, res, next) => {
   const userId = req.body.userId;
   const details = req.body.description;
   const length = req.body.duration;
   let date = req.body.date;
   
-  date ? date = new Date(date).toDateString() : date = new Date().toDateString();
+  date ? date = new Date(date).toDateString() : date = new Date().toDateString(); // if the date field is empty to add today's date as default
   
   console.log(userId + ' ' + details + ' ' + length + ' ' + date);
-  if (userId) {
-    User.findByIdAndUpdate(userId, {$push: {exercise: [{description: details, duration: length, date: date }] } }, (err, doc) => {
-      if (err) {
-        //console.log(err);
-        res.json("_id not found");
+  
+  //form validation: *userId*, description* and *duration* fields need to be filled - they are required in succession
+  if (!userId) {
+    err = new Error("Error: invalid _id");
+    err.status = 401;
+    return next(err);
+  } else {
+    if (!details) {
+      err = new Error('Path `description` is required');
+      return next(err);
+    } else {
+      if (!length) {
+        err = new Error('Path `duration` is required');
+        return next(err);
       } else {
-        User.find({ username: doc.username }, '-__v', (err, updatedDoc) => {
-          let last = updatedDoc[0].exercise.length - 1;
-          if (err) {
-            console.log(err);
-          } else {
-            console.log(updatedDoc[0]);
-            //view the last entry 
-            res.json({_id: updatedDoc[0]._id, username: updatedDoc[0].username, description: updatedDoc[0].exercise[last].description, duration: updatedDoc[0].exercise[last].duration, date: updatedDoc[0].exercise[last].date});           
-          }
-        });
+        if (isNaN(length)) {
+          err = new Error('Error: `duration` needs to be a number');
+          err.status = 401;
+          return next(err);
+        } else {
+          //proceeding to find the user by _id and then update its properties after pushing a new entry in the exercise array
+          User.findByIdAndUpdate(userId, {
+            $push: { exercise: [{
+              _id: shortid.generate(),
+              description: details,
+              duration: length,
+              date: date 
+            }]}}, (err, doc) => {
+            if (err) {
+              console.log(err);
+            } else {
+              if(doc) { //user is found by _id
+                //proceeding to get the updated exercise entry from the user's document
+                User.find({ username: doc.username }, '-__v', (err, updatedDoc) => {
+                  let last = updatedDoc[0].exercise.length - 1; //index of the last entry
+                  if (err) {
+                    console.log(err);
+                  } else {
+                    console.log(updatedDoc[0]);
+                    //view the last entry
+                    res.json({
+                      _id: updatedDoc[0]._id,
+                      username: updatedDoc[0].username, 
+                      description: updatedDoc[0].exercise[last].description, 
+                      duration: updatedDoc[0].exercise[last].duration, 
+                      date: updatedDoc[0].exercise[last].date
+                    });
+                  }
+                });
+              } else { //user _id not found
+                err = new Error('_id: ' + userId + ' - Not Found' );
+                err.status = 404;
+                return next(err);
+              }
+            }
+          });
+        }
+      }
+    }
+  }
+});
+
+//==============================User Story #4==============================
+//get the user's document with a log for total exercises added and total exercise count
+app.get('/api/exercise/log/:_id?', (req, res, next) => {
+  const userId = req.params._id;
+  if (userId) {
+    User
+    .findById(userId)
+    .select('-__v')
+    .exec((err, doc) => {
+      err ? console.log(err) : null;
+      if (doc) {//_id found
+        res.json({ User_document: doc, Total_exercise_count: doc.exercise.length });
+        console.log(doc);
+      } else { //_id not found
+        err = new Error('_id: ' + userId + ' - Not Found' );
+        err.status = 404;
+        return next(err);
       }
     });
-  } else res.json("invalid _id");
+  } else { //_id is undefined because it was not entered as a parameter
+    err = new Error('_id: ' + userId);
+    err.status = 404;
+    return next(err);
+  }
 });
+
+//==============================User Story #5==============================
+//get user's document with a partial log of the exercises added, passing options from and to a date
+/*app.get('/api/exercise/log', (req, res) => {
+  const userId = req.query._id;
+  const num = req.query.limit;
+    
+  console.log(userId);
+  console.log(num);
+  
+  User
+    .findById(userId)
+    .sort('-date')
+    .limit(Number(num))
+    .select('-__v')
+    .exec((err, doc) => {
+    err ? console.log(err) : res.json({User_document: doc, Total_exercise_count: doc.exercise.length});
+    console.log(doc);
+  });
+});*/
 
 
 //===============================================
