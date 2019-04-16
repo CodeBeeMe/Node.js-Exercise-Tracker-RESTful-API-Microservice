@@ -1,7 +1,8 @@
 {
-  "name": "fcc-exercise-tracker",
+  "name": "fcc-api-projects-Node.js-Exercise-Tracker-RESTful-API-Microservice",
   "version": "0.1.0",
   "description": "A REST API project, part of Free Code Camp's curriculum",
+  "author": "https://github.com/Madness2aMaze",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
